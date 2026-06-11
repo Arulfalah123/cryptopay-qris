@@ -16,14 +16,21 @@ export default function Home() {
   const [contactName, setContactName] = useState('')
   const [contactMsg, setContactMsg] = useState('')
 
-  const usdtAmount = amount ? parseFloat((parseFloat(amount) / IDR_TO_USDT).toFixed(2)) : 0
+  // Gunakan 6 desimal — USDT BEP-20 standarnya 6 desimal, bukan 18
+  const usdtAmount = amount ? parseFloat((parseFloat(amount) / IDR_TO_USDT).toFixed(6)) : 0
+  // Tampilan di UI cukup 2 desimal
+  const usdtDisplay = usdtAmount ? parseFloat(usdtAmount.toFixed(2)) : 0
 
-  // EIP-681 format — discan Trust Wallet/MetaMask langsung buka halaman transfer USDT
-  // Chain 56 = BSC Mainnet, contract = USDT BEP-20
+  // BEP-20 USDT contract on BSC Mainnet
   const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
-  const amountInWei = BigInt(Math.floor(usdtAmount * 1e18)).toString()
-  const qrValue = wallet
-    ? `ethereum:${USDT_CONTRACT}@56/transfer?address=${wallet}&uint256=${amountInWei}`
+
+  // USDT BEP-20 = 6 desimal, bukan 18
+  // Kalikan dengan 1_000_000 untuk dapat unit terkecil
+  const amountInSmallestUnit = Math.round(usdtAmount * 1_000_000).toString()
+
+  // Format EIP-681 standar tanpa chain ID — kompatibel dengan Binance, Trust Wallet, MetaMask, OKX
+  const qrValue = wallet && usdtAmount > 0
+    ? `ethereum:${USDT_CONTRACT}/transfer?address=${wallet}&uint256=${amountInSmallestUnit}`
     : ''
 
   function generate() {
@@ -107,7 +114,7 @@ export default function Home() {
                       <div className="mt-2 rounded-lg px-4 py-2 flex justify-between"
                         style={{ backgroundColor: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.25)' }}>
                         <span className="text-xs text-white/50">Pembeli bayar:</span>
-                        <span className="text-sm font-black" style={{ color: '#5865f2' }}>{usdtAmount} USDT</span>
+                        <span className="text-sm font-black" style={{ color: '#5865f2' }}>{usdtDisplay} USDT</span>
                       </div>
                     )}
                   </div>
@@ -155,14 +162,18 @@ export default function Home() {
                   {/* QR */}
                   <div className="flex justify-center mb-5">
                     <div className="p-4 rounded-xl bg-white">
-                      <QRCode value={qrValue} size={200} />
+                      {qrValue ? (
+                        <QRCode value={qrValue} size={240} />
+                      ) : (
+                        <div className="w-60 h-60 flex items-center justify-center text-gray-400 text-xs">QR tidak tersedia</div>
+                      )}
                     </div>
                   </div>
 
                   {/* Amount */}
                   <div className="text-center rounded-xl py-4 mb-4" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
                     <p className="text-4xl font-black text-white">
-                      {usdtAmount}
+                      {usdtDisplay}
                       <span className="text-lg text-white/40 ml-2">USDT</span>
                     </p>
                     <p className="text-sm text-white/40 mt-1">
@@ -190,7 +201,7 @@ export default function Home() {
                       <li>1. Buka <span className="text-white/80 font-semibold">Trust Wallet</span> atau <span className="text-white/80 font-semibold">MetaMask</span></li>
                       <li>2. Tap <span className="text-white/80 font-semibold">Scan QR</span> di dalam app</li>
                       <li>3. Scan QR di atas → otomatis terbuka halaman transfer</li>
-                      <li>4. Nominal <span className="text-white/80 font-semibold">{usdtAmount} USDT</span> sudah terisi otomatis</li>
+                      <li>4. Nominal <span className="text-white/80 font-semibold">{usdtDisplay} USDT</span> sudah terisi otomatis</li>
                       <li>5. Konfirmasi & kirim</li>
                     </ol>
                   </div>
