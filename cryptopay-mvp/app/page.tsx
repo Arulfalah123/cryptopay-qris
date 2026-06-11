@@ -87,35 +87,23 @@ export default function Home() {
                 </p>
 
                 <div className="space-y-3">
-                  {/* WalletConnect — BARU */}
-                  <button
-                    onClick={() => setPayMode('walletconnect')}
-                    className="w-full rounded-2xl p-5 text-left transition-all hover:scale-[1.02]"
-                    style={{ backgroundColor: 'rgba(88,101,242,0.2)', border: '2px solid #5865f2' }}
+                  {/* WalletConnect — Coming Soon */}
+                  <div
+                    className="w-full rounded-2xl p-5 text-left relative overflow-hidden"
+                    style={{ backgroundColor: 'rgba(88,101,242,0.08)', border: '2px solid rgba(88,101,242,0.2)' }}
                   >
+                    <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-bold"
+                      style={{ backgroundColor: 'rgba(255,170,0,0.15)', color: '#ffaa00', border: '1px solid rgba(255,170,0,0.3)' }}>
+                      🔜 Segera
+                    </div>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-2xl">🔗</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-black text-white text-base">WalletConnect</p>
-                          <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                            style={{ backgroundColor: 'rgba(0,212,102,0.2)', color: '#00d166', border: '1px solid rgba(0,212,102,0.3)' }}>
-                            ✨ BARU
-                          </span>
-                        </div>
-                        <p className="text-xs text-white/50">Pembeli scan QR → langsung bayar otomatis</p>
+                      <div>
+                        <p className="font-black text-white/40 text-base">WalletConnect</p>
+                        <p className="text-xs text-white/25">Scan QR → auto bayar 300+ wallet</p>
                       </div>
-                      <span className="text-white/40">→</span>
                     </div>
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {['MetaMask', 'Trust Wallet', 'Coinbase', 'OKX', '300+ wallet'].map(w => (
-                        <span key={w} className="text-xs px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(88,101,242,0.25)', color: 'rgba(255,255,255,0.7)' }}>
-                          {w}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
+                  </div>
 
                   {/* BSC Manual QR */}
                   <button
