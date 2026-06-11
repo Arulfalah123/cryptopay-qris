@@ -21,9 +21,18 @@ export default function Home() {
   // Tampilan di UI cukup 2 desimal
   const usdtDisplay = usdtAmount ? parseFloat(usdtAmount.toFixed(2)) : 0
 
-  // QR hanya berisi wallet address — paling universal, support semua wallet
-  // (Binance, Trust Wallet, MetaMask, OKX, dll semua bisa scan wallet address biasa)
-  const qrValue = wallet || ''
+  // BEP-20 USDT contract on BSC Mainnet
+  const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
+
+  // USDT BEP-20 = 6 desimal → kalikan 1_000_000 untuk unit terkecil
+  // Pakai string manipulation untuk hindari float precision error
+  const amountInSmallestUnit = Math.round(usdtAmount * 1_000_000).toString()
+
+  // EIP-681 format dengan chain ID 56 (BSC Mainnet) — format yang pernah bisa
+  // @56 = BSC, contract USDT, transfer ke address dengan amount
+  const qrValue = wallet && usdtAmount > 0
+    ? `ethereum:${USDT_CONTRACT}@56/transfer?address=${wallet}&uint256=${amountInSmallestUnit}`
+    : wallet || ''
 
   function generate() {
     if (!wallet || !amount) return setError('Isi semua field!')
@@ -190,12 +199,11 @@ export default function Home() {
                   <div className="rounded-lg p-3 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.25)' }}>
                     <p className="text-xs font-bold text-white/70 mb-2 uppercase tracking-wide">Cara bayar:</p>
                     <ol className="text-xs text-white/50 space-y-1 list-none">
-                      <li>1. Buka app crypto kamu (Binance, Trust Wallet, MetaMask, OKX)</li>
-                      <li>2. Pilih <span className="text-white/80 font-semibold">Send / Kirim</span> → pilih token <span className="text-white/80 font-semibold">USDT BEP-20</span></li>
-                      <li>3. Tap ikon scan QR → scan QR di atas</li>
-                      <li>4. Masukkan nominal <span className="text-white/80 font-semibold">{usdtDisplay} USDT</span> secara manual</li>
-                      <li>5. Pastikan network: <span className="text-white/80 font-semibold">BNB Smart Chain (BSC)</span></li>
-                      <li>6. Konfirmasi & kirim</li>
+                      <li>1. Buka <span className="text-white/80 font-semibold">Trust Wallet</span> atau <span className="text-white/80 font-semibold">MetaMask</span></li>
+                      <li>2. Tap <span className="text-white/80 font-semibold">Scan QR</span> di dalam app</li>
+                      <li>3. Scan QR di atas → otomatis terbuka halaman transfer</li>
+                      <li>4. Nominal <span className="text-white/80 font-semibold">{usdtDisplay} USDT</span> sudah terisi otomatis</li>
+                      <li>5. Konfirmasi & kirim</li>
                     </ol>
                   </div>
 
