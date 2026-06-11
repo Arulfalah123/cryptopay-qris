@@ -5,34 +5,26 @@ import QRCode from 'react-qr-code'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const IDR_TO_USDT = 15500
+const APP_VERSION = 'v0.4'
+const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
 
 export default function Home() {
   const [wallet, setWallet] = useState('')
   const [amount, setAmount] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedContract, setCopiedContract] = useState(false)
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [contactName, setContactName] = useState('')
   const [contactMsg, setContactMsg] = useState('')
 
-  // Gunakan 6 desimal — USDT BEP-20 standarnya 6 desimal, bukan 18
+  // Hitung USDT dengan 6 desimal (standar USDT BEP-20)
   const usdtAmount = amount ? parseFloat((parseFloat(amount) / IDR_TO_USDT).toFixed(6)) : 0
-  // Tampilan di UI cukup 2 desimal
   const usdtDisplay = usdtAmount ? parseFloat(usdtAmount.toFixed(2)) : 0
 
-  // BEP-20 USDT contract on BSC Mainnet
-  const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
-
-  // USDT BEP-20 = 6 desimal → kalikan 1_000_000 untuk unit terkecil
-  // Pakai string manipulation untuk hindari float precision error
-  const amountInSmallestUnit = Math.round(usdtAmount * 1_000_000).toString()
-
-  // EIP-681 format dengan chain ID 56 (BSC Mainnet) — format yang pernah bisa
-  // @56 = BSC, contract USDT, transfer ke address dengan amount
-  const qrValue = wallet && usdtAmount > 0
-    ? `ethereum:${USDT_CONTRACT}@56/transfer?address=${wallet}&uint256=${amountInSmallestUnit}`
-    : wallet || ''
+  // QR hanya berisi wallet address — universal, bisa discan Trust Wallet, MetaMask, OKX, dll
+  const qrValue = wallet || ''
 
   function generate() {
     if (!wallet || !amount) return setError('Isi semua field!')
@@ -54,6 +46,12 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function copyContract() {
+    navigator.clipboard.writeText(USDT_CONTRACT)
+    setCopiedContract(true)
+    setTimeout(() => setCopiedContract(false), 2000)
+  }
+
   return (
     <div className="bg-discord min-h-screen flex flex-col">
       {/* Navbar */}
@@ -61,6 +59,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <span className="text-2xl">₿</span>
           <span className="font-bold text-xl text-white">CryptoQRIS</span>
+          <span className="text-xs text-white/30 font-mono">{APP_VERSION}</span>
         </div>
         <div className="text-xs text-white/40 px-3 py-1.5 rounded-full" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
           BSC Mainnet · USDT BEP-20
@@ -152,7 +151,7 @@ export default function Home() {
                 <div className="rounded-2xl p-6" style={{ backgroundColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
                   {/* Supported wallets */}
                   <div className="flex justify-center gap-2 mb-5 flex-wrap">
-                    {['MetaMask', 'Trust Wallet', 'Binance', 'OKX', 'Tokocrypto'].map(w => (
+                    {['Trust Wallet', 'MetaMask', 'OKX', 'Tokocrypto', 'Bybit'].map(w => (
                       <span key={w} className="text-xs px-2.5 py-1 rounded-full font-medium"
                         style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
                         {w}
@@ -161,7 +160,7 @@ export default function Home() {
                   </div>
 
                   {/* QR */}
-                  <div className="flex justify-center mb-5">
+                  <div className="flex justify-center mb-3">
                     <div className="p-4 rounded-xl bg-white">
                       {qrValue ? (
                         <QRCode value={qrValue} size={240} />
@@ -170,23 +169,44 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+                  <p className="text-center text-xs text-white/30 mb-5">Scan dari dalam app crypto kamu</p>
 
-                  {/* Amount */}
-                  <div className="text-center rounded-xl py-4 mb-4" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <p className="text-4xl font-black text-white">
+                  {/* Amount box */}
+                  <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.2)', border: '2px solid rgba(88,101,242,0.5)' }}>
+                    <p className="text-xs text-white/50 text-center mb-1 uppercase tracking-widest">Kirim tepat sebesar</p>
+                    <p className="text-4xl font-black text-white text-center">
                       {usdtDisplay}
-                      <span className="text-lg text-white/40 ml-2">USDT</span>
+                      <span className="text-lg text-white/50 ml-2">USDT</span>
                     </p>
-                    <p className="text-sm text-white/40 mt-1">
+                    <p className="text-sm text-white/40 text-center mt-1">
                       ≈ Rp {parseFloat(amount).toLocaleString('id-ID')}
                     </p>
+                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <p className="text-xs text-white/40 text-center mb-1">Network wajib:</p>
+                      <p className="text-xs font-bold text-center" style={{ color: '#f0b90b' }}>BNB Smart Chain (BSC / BEP-20)</p>
+                    </div>
+                  </div>
+
+                  {/* Contract USDT */}
+                  <div className="mb-4">
+                    <p className="text-xs text-white/40 mb-1 uppercase tracking-widest">Contract USDT BEP-20 (untuk tambah token manual):</p>
+                    <button
+                      onClick={copyContract}
+                      className="w-full rounded-lg px-3 py-2.5 text-xs font-mono flex justify-between items-center transition-all"
+                      style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      <span className="truncate text-white/60">{USDT_CONTRACT}</span>
+                      <span className="ml-2 shrink-0 font-bold text-xs" style={{ color: copiedContract ? '#00d166' : '#5865f2' }}>
+                        {copiedContract ? '✓' : 'Copy'}
+                      </span>
+                    </button>
                   </div>
 
                   {/* Address */}
-                  <p className="text-xs text-white/40 mb-2 uppercase tracking-widest">Atau copy address:</p>
+                  <p className="text-xs text-white/40 mb-1 uppercase tracking-widest">Wallet address penerima:</p>
                   <button
                     onClick={copyAddress}
-                    className="w-full rounded-lg px-4 py-3 text-xs font-mono flex justify-between items-center mb-4 transition-all"
+                    className="w-full rounded-lg px-4 py-3 text-xs font-mono flex justify-between items-center mb-5 transition-all"
                     style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
                     <span className="truncate">{wallet}</span>
@@ -196,22 +216,28 @@ export default function Home() {
                   </button>
 
                   {/* How to pay */}
-                  <div className="rounded-lg p-3 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.25)' }}>
-                    <p className="text-xs font-bold text-white/70 mb-2 uppercase tracking-wide">Cara bayar:</p>
-                    <ol className="text-xs text-white/50 space-y-1 list-none">
-                      <li>1. Buka <span className="text-white/80 font-semibold">Trust Wallet</span> atau <span className="text-white/80 font-semibold">MetaMask</span></li>
-                      <li>2. Tap <span className="text-white/80 font-semibold">Scan QR</span> di dalam app</li>
-                      <li>3. Scan QR di atas → otomatis terbuka halaman transfer</li>
-                      <li>4. Nominal <span className="text-white/80 font-semibold">{usdtDisplay} USDT</span> sudah terisi otomatis</li>
-                      <li>5. Konfirmasi & kirim</li>
-                    </ol>
-                  </div>
-
-                  {/* Reminder nominal */}
-                  <div className="rounded-lg p-3 mb-4" style={{ backgroundColor: 'rgba(255,200,0,0.08)', border: '1px solid rgba(255,200,0,0.2)' }}>
-                    <p className="text-xs text-yellow-300/70">
-                      ⚠️ QR hanya berisi <strong>alamat wallet</strong>. Masukkan nominal <strong>{usdtDisplay} USDT</strong> secara manual di app kamu.
-                    </p>
+                  <div className="rounded-lg p-3 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.12)', border: '1px solid rgba(88,101,242,0.25)' }}>
+                    <p className="text-xs font-bold text-white/70 mb-3 uppercase tracking-wide">📱 Cara bayar:</p>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold text-white/70 mb-1">Trust Wallet / MetaMask / OKX:</p>
+                        <ol className="text-xs text-white/50 space-y-0.5 list-none">
+                          <li>1. Buka app → tap <strong className="text-white/70">Send</strong></li>
+                          <li>2. Pilih token <strong className="text-white/70">USDT</strong>, network <strong className="text-white/70">BSC/BEP-20</strong></li>
+                          <li>3. Tap ikon scan QR → scan QR di atas</li>
+                          <li>4. Masukkan <strong className="text-white/70">{usdtDisplay} USDT</strong> → kirim</li>
+                        </ol>
+                      </div>
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
+                        <p className="text-xs font-semibold text-white/70 mb-1">Binance / exchange lain:</p>
+                        <ol className="text-xs text-white/50 space-y-0.5 list-none">
+                          <li>1. Buka Binance → <strong className="text-white/70">Withdraw</strong></li>
+                          <li>2. Pilih <strong className="text-white/70">USDT</strong>, network <strong className="text-white/70">BEP-20</strong></li>
+                          <li>3. Paste address penerima (tombol Copy di atas)</li>
+                          <li>4. Masukkan <strong className="text-white/70">{usdtDisplay} USDT</strong> → kirim</li>
+                        </ol>
+                      </div>
+                    </div>
                   </div>
 
                   <p className="text-xs text-center text-white/30 mb-4">Network: BNB Smart Chain (BSC Mainnet) · Token: USDT BEP-20</p>
@@ -233,7 +259,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="content text-center py-8 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <p className="text-white/30 text-xs mb-3">
-          © {new Date().getFullYear()} <span className="text-white/50 font-semibold">Arulfalah Nurwahid</span>. All rights reserved.
+          © {new Date().getFullYear()} <span className="text-white/50 font-semibold">Arulfalah Nurwahid</span>. All rights reserved. · <span className="font-mono">{APP_VERSION}</span>
         </p>
         <button
           onClick={() => setShowModal(true)}
