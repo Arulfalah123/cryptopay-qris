@@ -4,31 +4,42 @@ import { useState } from 'react'
 import QRCode from 'react-qr-code'
 import { motion, AnimatePresence } from 'framer-motion'
 
+const APP_VERSION = 'v0.5'
 const IDR_TO_USDT = 15500
-const APP_VERSION = 'v0.4'
-const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
+
+// Contract addresses
+const USDT_BSC  = '0x55d398326f99059fF775485246999027B3197955'
+const USDT_TRC  = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' // USDT TRC-20 contract (info only)
+
+type PayMode = 'select' | 'crypto' | 'qris'
+type CryptoNetwork = 'bsc' | 'trc20'
 
 export default function Home() {
-  const [wallet, setWallet] = useState('')
-  const [amount, setAmount] = useState('')
-  const [showQR, setShowQR] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [payMode, setPayMode]       = useState<PayMode>('select')
+  const [network, setNetwork]       = useState<CryptoNetwork>('bsc')
+  const [wallet, setWallet]         = useState('')
+  const [amount, setAmount]         = useState('')
+  const [showQR, setShowQR]         = useState(false)
+  const [copied, setCopied]         = useState(false)
   const [copiedContract, setCopiedContract] = useState(false)
-  const [error, setError] = useState('')
-  const [showModal, setShowModal] = useState(false)
+  const [error, setError]           = useState('')
+  const [showModal, setShowModal]   = useState(false)
   const [contactName, setContactName] = useState('')
-  const [contactMsg, setContactMsg] = useState('')
+  const [contactMsg, setContactMsg]   = useState('')
 
-  // Hitung USDT dengan 6 desimal (standar USDT BEP-20)
-  const usdtAmount = amount ? parseFloat((parseFloat(amount) / IDR_TO_USDT).toFixed(6)) : 0
+  const usdtAmount  = amount ? parseFloat((parseFloat(amount) / IDR_TO_USDT).toFixed(6)) : 0
   const usdtDisplay = usdtAmount ? parseFloat(usdtAmount.toFixed(2)) : 0
+  const qrValue     = wallet || ''
 
-  // QR hanya berisi wallet address — universal, bisa discan Trust Wallet, MetaMask, OKX, dll
-  const qrValue = wallet || ''
+  const networkLabel = network === 'bsc' ? 'BNB Smart Chain (BSC / BEP-20)' : 'TRON (TRC-20)'
+  const contractAddr = network === 'bsc' ? USDT_BSC : USDT_TRC
 
   function generate() {
     if (!wallet || !amount) return setError('Isi semua field!')
-    if (!wallet.startsWith('0x') || wallet.length !== 42) return setError('Wallet address tidak valid')
+    const isValidEVM  = wallet.startsWith('0x') && wallet.length === 42
+    const isValidTRON = wallet.startsWith('T') && wallet.length === 34
+    if (network === 'bsc'   && !isValidEVM)  return setError('Wallet BSC harus mulai 0x, 42 karakter')
+    if (network === 'trc20' && !isValidTRON) return setError('Wallet TRON harus mulai T, 34 karakter')
     if (parseFloat(amount) <= 0) return setError('Nominal harus lebih dari 0')
     setError('')
     setShowQR(true)
@@ -38,6 +49,13 @@ export default function Home() {
     setShowQR(false)
     setWallet('')
     setAmount('')
+    setError('')
+  }
+
+  function backToSelect() {
+    reset()
+    setPayMode('select')
+    setNetwork('bsc')
   }
 
   function copyAddress() {
@@ -47,7 +65,7 @@ export default function Home() {
   }
 
   function copyContract() {
-    navigator.clipboard.writeText(USDT_CONTRACT)
+    navigator.clipboard.writeText(contractAddr)
     setCopiedContract(true)
     setTimeout(() => setCopiedContract(false), 2000)
   }
@@ -56,36 +74,148 @@ export default function Home() {
     <div className="bg-discord min-h-screen flex flex-col">
       {/* Navbar */}
       <nav className="content flex items-center justify-between px-8 py-4">
-        <div className="flex items-center gap-2">
+        <button onClick={backToSelect} className="flex items-center gap-2">
           <span className="text-2xl">₿</span>
           <span className="font-bold text-xl text-white">CryptoQRIS</span>
           <span className="text-xs text-white/30 font-mono">{APP_VERSION}</span>
-        </div>
+        </button>
         <div className="text-xs text-white/40 px-3 py-1.5 rounded-full" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
-          BSC Mainnet · USDT BEP-20
+          USDT · BSC & TRC-20
         </div>
       </nav>
 
       <div className="content flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <AnimatePresence mode="wait">
-            {!showQR ? (
-              <motion.div key="form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                <h1 className="text-4xl font-black uppercase text-center mb-2">BUAT QRIS CRYPTO</h1>
+
+            {/* ── STEP 1: PILIH METODE ── */}
+            {payMode === 'select' && (
+              <motion.div key="select" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <h1 className="text-4xl font-black uppercase text-center mb-2">BUAT QR BAYAR</h1>
                 <p className="text-center text-white/50 text-sm mb-8">
-                  Gratis untuk siapa saja — terima crypto langsung ke wallet kamu tanpa ribet
+                  Pilih metode pembayaran yang sesuai dengan pembelimu
                 </p>
 
+                <div className="space-y-4">
+                  {/* Pilihan Crypto */}
+                  <button
+                    onClick={() => setPayMode('crypto')}
+                    className="w-full rounded-2xl p-5 text-left transition-all hover:scale-[1.02]"
+                    style={{ backgroundColor: 'rgba(88,101,242,0.15)', border: '2px solid rgba(88,101,242,0.4)' }}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">💎</span>
+                      <div>
+                        <p className="font-black text-white text-base">Bayar Pakai Crypto</p>
+                        <p className="text-xs text-white/50">USDT · BSC atau TRC-20</p>
+                      </div>
+                      <span className="ml-auto text-white/40">→</span>
+                    </div>
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      {['Trust Wallet', 'MetaMask', 'OKX', 'Binance'].map(w => (
+                        <span key={w} className="text-xs px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: 'rgba(88,101,242,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+
+                  {/* Pilihan QRIS IDR */}
+                  <div
+                    className="w-full rounded-2xl p-5 text-left relative overflow-hidden"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)' }}
+                  >
+                    {/* Badge segera hadir */}
+                    <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-bold"
+                      style={{ backgroundColor: 'rgba(255,170,0,0.2)', color: '#ffaa00', border: '1px solid rgba(255,170,0,0.3)' }}>
+                      🔜 Segera Hadir
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">🏦</span>
+                      <div>
+                        <p className="font-black text-white/50 text-base">Bayar Pakai QRIS IDR</p>
+                        <p className="text-xs text-white/30">GoPay · Dana · OVO · BCA · dll</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-white/30 mt-2">
+                      Integrasi dengan Midtrans/Xendit coming soon. Pembeli bayar IDR, kamu terima IDR.
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-center text-xs mt-6 text-white/20">
+                  100% gratis · Tidak perlu daftar · Langsung pakai
+                </p>
+              </motion.div>
+            )}
+
+            {/* ── STEP 2: FORM CRYPTO ── */}
+            {payMode === 'crypto' && !showQR && (
+              <motion.div key="form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <button onClick={backToSelect} className="flex items-center gap-1 text-xs text-white/40 mb-5 hover:text-white/70 transition-colors">
+                  ← Kembali
+                </button>
+                <h1 className="text-3xl font-black uppercase text-center mb-1">BUAT QR CRYPTO</h1>
+                <p className="text-center text-white/50 text-sm mb-6">Isi detail pembayaran kamu</p>
+
                 <div className="rounded-2xl p-6" style={{ backgroundColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
+
+                  {/* Pilih Network */}
+                  <div className="mb-5">
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2 text-white/50">
+                      Pilih Network USDT
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => { setNetwork('bsc'); setWallet(''); setError('') }}
+                        className="rounded-xl py-3 px-3 text-sm font-bold transition-all"
+                        style={{
+                          backgroundColor: network === 'bsc' ? 'rgba(88,101,242,0.3)' : 'rgba(0,0,0,0.3)',
+                          border: network === 'bsc' ? '2px solid #5865f2' : '2px solid rgba(255,255,255,0.1)',
+                          color: network === 'bsc' ? '#fff' : 'rgba(255,255,255,0.4)'
+                        }}
+                      >
+                        <p className="font-black">BSC</p>
+                        <p className="text-xs font-normal opacity-70">BEP-20</p>
+                        <p className="text-xs font-normal opacity-50 mt-1">Trust Wallet MetaMask</p>
+                      </button>
+                      <button
+                        onClick={() => { setNetwork('trc20'); setWallet(''); setError('') }}
+                        className="rounded-xl py-3 px-3 text-sm font-bold transition-all"
+                        style={{
+                          backgroundColor: network === 'trc20' ? 'rgba(239,68,68,0.2)' : 'rgba(0,0,0,0.3)',
+                          border: network === 'trc20' ? '2px solid #ef4444' : '2px solid rgba(255,255,255,0.1)',
+                          color: network === 'trc20' ? '#fff' : 'rgba(255,255,255,0.4)'
+                        }}
+                      >
+                        <p className="font-black">TRC-20</p>
+                        <p className="text-xs font-normal opacity-70">TRON</p>
+                        <p className="text-xs font-normal opacity-50 mt-1">Binance OKX Bybit</p>
+                      </button>
+                    </div>
+                    {network === 'trc20' && (
+                      <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.8)' }}>
+                        💡 TRC-20 cocok untuk pembeli yang pakai Binance exchange — bisa withdraw langsung ke wallet kamu
+                      </div>
+                    )}
+                    {network === 'bsc' && (
+                      <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: 'rgba(88,101,242,0.1)', border: '1px solid rgba(88,101,242,0.2)', color: 'rgba(150,160,255,0.9)' }}>
+                        💡 BSC cocok untuk pembeli yang pakai Trust Wallet atau MetaMask
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Wallet Address */}
                   <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-widest mb-2 text-white/50">
-                      Wallet Address Kamu (Penerima Dana)
+                      Wallet Address Kamu ({network === 'bsc' ? 'BSC/BEP-20' : 'TRON/TRC-20'})
                     </label>
                     <input
                       type="text"
                       value={wallet}
                       onChange={e => setWallet(e.target.value)}
-                      placeholder="0x... (wallet BSC milik kamu)"
+                      placeholder={network === 'bsc' ? '0x... (42 karakter)' : 'T... (34 karakter)'}
                       className="w-full rounded-lg px-4 py-3 text-sm font-mono outline-none"
                       style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)' }}
                       onFocus={e => (e.target.style.border = '1px solid #5865f2')}
@@ -93,6 +223,7 @@ export default function Home() {
                     />
                   </div>
 
+                  {/* Nominal */}
                   <div className="mb-5">
                     <label className="block text-xs font-bold uppercase tracking-widest mb-2 text-white/50">
                       Nominal Tagihan (IDR)
@@ -135,78 +266,64 @@ export default function Home() {
                   >
                     ⚡ Buat QR Pembayaran
                   </button>
-
-                  <p className="text-center text-xs mt-3 text-white/30">
-                    100% gratis · Tidak perlu daftar · Langsung pakai
-                  </p>
                 </div>
               </motion.div>
-            ) : (
+            )}
+
+            {/* ── STEP 3: QR PAGE ── */}
+            {payMode === 'crypto' && showQR && (
               <motion.div key="qr" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                 <h1 className="text-3xl font-black uppercase text-center mb-1">SCAN & BAYAR</h1>
                 <p className="text-center text-white/50 text-sm mb-6">
-                  Scan QR pakai app crypto favoritmu
+                  Tunjukkan QR ini ke pembeli
                 </p>
 
                 <div className="rounded-2xl p-6" style={{ backgroundColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
-                  {/* Supported wallets */}
-                  <div className="flex justify-center gap-2 mb-5 flex-wrap">
-                    {['Trust Wallet', 'MetaMask', 'OKX', 'Tokocrypto', 'Bybit'].map(w => (
-                      <span key={w} className="text-xs px-2.5 py-1 rounded-full font-medium"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
-                        {w}
-                      </span>
-                    ))}
+
+                  {/* Network badge */}
+                  <div className="flex justify-center mb-4">
+                    <span className="text-xs font-bold px-3 py-1.5 rounded-full"
+                      style={{
+                        backgroundColor: network === 'bsc' ? 'rgba(88,101,242,0.2)' : 'rgba(239,68,68,0.2)',
+                        color: network === 'bsc' ? '#a5b4fc' : '#fca5a5',
+                        border: `1px solid ${network === 'bsc' ? 'rgba(88,101,242,0.4)' : 'rgba(239,68,68,0.4)'}`
+                      }}>
+                      {network === 'bsc' ? '🔵 BSC / BEP-20' : '🔴 TRON / TRC-20'}
+                    </span>
                   </div>
 
-                  {/* QR */}
+                  {/* QR Code */}
                   <div className="flex justify-center mb-3">
                     <div className="p-4 rounded-xl bg-white">
-                      {qrValue ? (
-                        <QRCode value={qrValue} size={240} />
-                      ) : (
-                        <div className="w-60 h-60 flex items-center justify-center text-gray-400 text-xs">QR tidak tersedia</div>
-                      )}
+                      <QRCode value={qrValue} size={240} />
                     </div>
                   </div>
-                  <p className="text-center text-xs text-white/30 mb-5">Scan dari dalam app crypto kamu</p>
+                  <p className="text-center text-xs text-white/30 mb-4">
+                    Scan dari dalam app crypto · Bukan dari kamera HP
+                  </p>
 
-                  {/* Amount box */}
-                  <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.2)', border: '2px solid rgba(88,101,242,0.5)' }}>
-                    <p className="text-xs text-white/50 text-center mb-1 uppercase tracking-widest">Kirim tepat sebesar</p>
+                  {/* Amount */}
+                  <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p className="text-xs text-white/40 text-center mb-1 uppercase tracking-widest">Kirim tepat sebesar</p>
                     <p className="text-4xl font-black text-white text-center">
                       {usdtDisplay}
-                      <span className="text-lg text-white/50 ml-2">USDT</span>
+                      <span className="text-lg text-white/40 ml-2">USDT</span>
                     </p>
                     <p className="text-sm text-white/40 text-center mt-1">
                       ≈ Rp {parseFloat(amount).toLocaleString('id-ID')}
                     </p>
-                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      <p className="text-xs text-white/40 text-center mb-1">Network wajib:</p>
-                      <p className="text-xs font-bold text-center" style={{ color: '#f0b90b' }}>BNB Smart Chain (BSC / BEP-20)</p>
+                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <p className="text-xs font-bold text-center" style={{ color: network === 'bsc' ? '#a5b4fc' : '#fca5a5' }}>
+                        ⚠️ Wajib kirim via {networkLabel}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Contract USDT */}
-                  <div className="mb-4">
-                    <p className="text-xs text-white/40 mb-1 uppercase tracking-widest">Contract USDT BEP-20 (untuk tambah token manual):</p>
-                    <button
-                      onClick={copyContract}
-                      className="w-full rounded-lg px-3 py-2.5 text-xs font-mono flex justify-between items-center transition-all"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
-                    >
-                      <span className="truncate text-white/60">{USDT_CONTRACT}</span>
-                      <span className="ml-2 shrink-0 font-bold text-xs" style={{ color: copiedContract ? '#00d166' : '#5865f2' }}>
-                        {copiedContract ? '✓' : 'Copy'}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Address */}
+                  {/* Copy Address */}
                   <p className="text-xs text-white/40 mb-1 uppercase tracking-widest">Wallet address penerima:</p>
                   <button
                     onClick={copyAddress}
-                    className="w-full rounded-lg px-4 py-3 text-xs font-mono flex justify-between items-center mb-5 transition-all"
+                    className="w-full rounded-lg px-4 py-3 text-xs font-mono flex justify-between items-center mb-3 transition-all"
                     style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
                     <span className="truncate">{wallet}</span>
@@ -215,43 +332,60 @@ export default function Home() {
                     </span>
                   </button>
 
-                  {/* How to pay */}
-                  <div className="rounded-lg p-3 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.12)', border: '1px solid rgba(88,101,242,0.25)' }}>
-                    <p className="text-xs font-bold text-white/70 mb-3 uppercase tracking-wide">📱 Cara bayar:</p>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold text-white/70 mb-1">Trust Wallet / MetaMask / OKX:</p>
-                        <ol className="text-xs text-white/50 space-y-0.5 list-none">
-                          <li>1. Buka app → tap <strong className="text-white/70">Send</strong></li>
-                          <li>2. Pilih token <strong className="text-white/70">USDT</strong>, network <strong className="text-white/70">BSC/BEP-20</strong></li>
-                          <li>3. Tap ikon scan QR → scan QR di atas</li>
-                          <li>4. Masukkan <strong className="text-white/70">{usdtDisplay} USDT</strong> → kirim</li>
-                        </ol>
-                      </div>
-                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
-                        <p className="text-xs font-semibold text-white/70 mb-1">Binance / exchange lain:</p>
-                        <ol className="text-xs text-white/50 space-y-0.5 list-none">
-                          <li>1. Buka Binance → <strong className="text-white/70">Withdraw</strong></li>
-                          <li>2. Pilih <strong className="text-white/70">USDT</strong>, network <strong className="text-white/70">BEP-20</strong></li>
-                          <li>3. Paste address penerima (tombol Copy di atas)</li>
-                          <li>4. Masukkan <strong className="text-white/70">{usdtDisplay} USDT</strong> → kirim</li>
-                        </ol>
-                      </div>
-                    </div>
+                  {/* Copy Contract */}
+                  <p className="text-xs text-white/40 mb-1 uppercase tracking-widest">Contract USDT {network === 'bsc' ? 'BEP-20' : 'TRC-20'}:</p>
+                  <button
+                    onClick={copyContract}
+                    className="w-full rounded-lg px-3 py-2.5 text-xs font-mono flex justify-between items-center mb-4 transition-all"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <span className="truncate text-white/50">{contractAddr}</span>
+                    <span className="ml-2 shrink-0 font-bold text-xs" style={{ color: copiedContract ? '#00d166' : '#5865f2' }}>
+                      {copiedContract ? '✓' : 'Copy'}
+                    </span>
+                  </button>
+
+                  {/* Cara Bayar */}
+                  <div className="rounded-lg p-3 mb-4" style={{ backgroundColor: 'rgba(88,101,242,0.1)', border: '1px solid rgba(88,101,242,0.2)' }}>
+                    <p className="text-xs font-bold text-white/70 mb-3 uppercase tracking-wide">📱 Cara pembeli bayar:</p>
+                    {network === 'bsc' ? (
+                      <ol className="text-xs text-white/50 space-y-1 list-none">
+                        <li>1. Buka <strong className="text-white/80">Trust Wallet</strong> atau <strong className="text-white/80">MetaMask</strong></li>
+                        <li>2. Tap <strong className="text-white/80">Send</strong> → pilih <strong className="text-white/80">USDT BEP-20</strong></li>
+                        <li>3. Tap ikon scan QR → scan QR di atas</li>
+                        <li>4. Masukkan <strong className="text-white/80">{usdtDisplay} USDT</strong> → kirim</li>
+                      </ol>
+                    ) : (
+                      <ol className="text-xs text-white/50 space-y-1 list-none">
+                        <li>1. Buka <strong className="text-white/80">Binance</strong> / <strong className="text-white/80">OKX</strong> / <strong className="text-white/80">Bybit</strong></li>
+                        <li>2. Pilih <strong className="text-white/80">Withdraw</strong> → token <strong className="text-white/80">USDT</strong></li>
+                        <li>3. Pilih network <strong className="text-white/80">TRC-20</strong></li>
+                        <li>4. Scan QR atau paste address penerima</li>
+                        <li>5. Masukkan <strong className="text-white/80">{usdtDisplay} USDT</strong> → kirim</li>
+                      </ol>
+                    )}
                   </div>
 
-                  <p className="text-xs text-center text-white/30 mb-4">Network: BNB Smart Chain (BSC Mainnet) · Token: USDT BEP-20</p>
+                  <p className="text-xs text-center text-white/20 mb-4">Network: {networkLabel} · Token: USDT</p>
 
                   <button
                     onClick={reset}
-                    className="w-full py-2.5 rounded-full text-sm font-bold transition-all"
+                    className="w-full py-2.5 rounded-full text-sm font-bold transition-all mb-2"
                     style={{ border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)' }}
                   >
                     ← Buat QR Baru
                   </button>
+                  <button
+                    onClick={backToSelect}
+                    className="w-full py-2 rounded-full text-xs transition-all"
+                    style={{ color: 'rgba(255,255,255,0.3)' }}
+                  >
+                    Ganti Metode Pembayaran
+                  </button>
                 </div>
               </motion.div>
             )}
+
           </AnimatePresence>
         </div>
       </div>
@@ -294,7 +428,6 @@ export default function Home() {
                 <h2 className="text-lg font-black uppercase text-white">Konsultasi & Keluhan</h2>
                 <button onClick={() => setShowModal(false)} className="text-white/40 hover:text-white text-xl leading-none">✕</button>
               </div>
-
               <div className="mb-4">
                 <label className="block text-xs font-bold uppercase tracking-widest mb-2 text-white/50">Nama Kamu</label>
                 <input
@@ -308,7 +441,6 @@ export default function Home() {
                   onBlur={e => (e.target.style.border = '1px solid rgba(255,255,255,0.12)')}
                 />
               </div>
-
               <div className="mb-6">
                 <label className="block text-xs font-bold uppercase tracking-widest mb-2 text-white/50">Pesan untuk Developer</label>
                 <textarea
@@ -322,7 +454,6 @@ export default function Home() {
                   onBlur={e => (e.target.style.border = '1px solid rgba(255,255,255,0.12)')}
                 />
               </div>
-
               <a
                 href={`mailto:arulfalahnurwahid@gmail.com?subject=CryptoQRIS - Pesan dari ${encodeURIComponent(contactName)}&body=${encodeURIComponent(contactMsg)}`}
                 onClick={() => setTimeout(() => setShowModal(false), 500)}
@@ -331,7 +462,6 @@ export default function Home() {
               >
                 Kirim Pesan
               </a>
-
               <p className="text-center text-xs mt-3 text-white/30">
                 Akan dikirim ke arulfalahnurwahid@gmail.com
               </p>
