@@ -176,9 +176,9 @@ export default function Home() {
                           color: network === 'bsc' ? '#fff' : 'rgba(255,255,255,0.4)'
                         }}
                       >
-                        <p className="font-black">BSC</p>
-                        <p className="text-xs font-normal opacity-70">BEP-20</p>
-                        <p className="text-xs font-normal opacity-50 mt-1">Trust Wallet MetaMask</p>
+                        <p className="font-black">BSC / BEP-20</p>
+                        <p className="text-xs font-normal opacity-70 mt-1">Wallet address: <span className="font-mono">0x...</span></p>
+                        <p className="text-xs font-normal opacity-50 mt-1">Trust Wallet · MetaMask · OKX Wallet</p>
                       </button>
                       <button
                         onClick={() => { setNetwork('trc20'); setWallet(''); setError('') }}
@@ -190,18 +190,18 @@ export default function Home() {
                         }}
                       >
                         <p className="font-black">TRC-20</p>
-                        <p className="text-xs font-normal opacity-70">TRON</p>
-                        <p className="text-xs font-normal opacity-50 mt-1">Binance OKX Bybit</p>
+                        <p className="text-xs font-normal opacity-70 mt-1">Wallet address: <span className="font-mono">T...</span></p>
+                        <p className="text-xs font-normal opacity-50 mt-1">Binance · OKX · Bybit exchange</p>
                       </button>
                     </div>
                     {network === 'trc20' && (
                       <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.8)' }}>
-                        💡 TRC-20 cocok untuk pembeli yang pakai Binance exchange — bisa withdraw langsung ke wallet kamu
+                        💡 Untuk pembeli yang kirim dari <strong>Binance/OKX exchange</strong> via Withdraw. Wallet kamu harus support TRON (address mulai <strong>T...</strong>)
                       </div>
                     )}
                     {network === 'bsc' && (
                       <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: 'rgba(88,101,242,0.1)', border: '1px solid rgba(88,101,242,0.2)', color: 'rgba(150,160,255,0.9)' }}>
-                        💡 BSC cocok untuk pembeli yang pakai Trust Wallet atau MetaMask
+                        💡 Untuk pembeli yang pakai <strong>Trust Wallet atau MetaMask</strong>. Wallet kamu harus BSC (address mulai <strong>0x...</strong>)
                       </div>
                     )}
                   </div>
